@@ -24,7 +24,7 @@ Painel (Premiere, UXP) ──http──> Motor local (Node: ffmpeg + whisper.cpp
 | `core/` | Regras de corte, plano de edição e gerador de XML. Puro, com testes |
 | `engine/` | Motor local em `http://127.0.0.1:47380` (ffmpeg, whisper.cpp) |
 | `server/` | API na nuvem: licença e decisões com Claude |
-| `panel/` | Painel UXP do Premiere 25.6+, no visual do TUBE Television |
+| `panel/` | Painel UXP do Premiere 25.6+ (cards escuros, ilustrações em traço, ponto vermelho = ligado) |
 
 ## Rodar em desenvolvimento
 

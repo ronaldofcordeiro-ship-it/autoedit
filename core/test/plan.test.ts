@@ -61,7 +61,8 @@ test('xml: windows path, j-cut and zoom', () => {
   // audio: 0-60, 60-120; video edge moves 4 frames later
   assert.match(xml, /<clipitem id="v-1">.*?<start>0<\/start><end>64<\/end><in>0<\/in><out>64<\/out>/);
   assert.match(xml, /<clipitem id="v-2">.*?<start>64<\/start><end>120<\/end><in>94<\/in><out>150<\/out>/);
-  assert.match(xml, /<clipitem id="a-2">.*?<start>60<\/start><end>120<\/end><in>90<\/in><out>150<\/out>/);
+  assert.match(xml, /<clipitem id="a1-2" premiereChannelType="mono">.*?<start>60<\/start><end>120<\/end><in>90<\/in><out>150<\/out>/);
+  assert.match(xml, /<clipitem id="a2-2" premiereChannelType="mono">.*?<trackindex>2<\/trackindex><\/sourcetrack>/);
   assert.match(xml, /<parameterid>scale<\/parameterid>.*?<value>115<\/value>/);
   assert.equal((xml.match(/<pathurl>/g) || []).length, 1);
 });

@@ -86,7 +86,8 @@ export function buildXml(plan: EditPlan, seq: SequenceInfo, opts: { name: string
     return `<file id="${id}"><name>${esc(c.name)}</name><pathurl>${esc(pathUrl(c.path))}</pathurl>${rate(fps)}<duration>${dur}</duration>`
       + `<media><video><samplecharacteristics>${rate(fps)}<width>${c.width ?? seq.width}</width><height>${c.height ?? seq.height}</height>`
       + `<pixelaspectratio>square</pixelaspectratio><fielddominance>none</fielddominance></samplecharacteristics></video>`
-      + (c.hasAudio === false ? '' : `<audio><samplecharacteristics><depth>16</depth><samplerate>${seq.audioRate}</samplerate></samplecharacteristics><channelcount>2</channelcount></audio>`)
+      + (c.hasAudio === false ? '' : [1, 2].map((ch) => `<audio><samplecharacteristics><depth>16</depth><samplerate>${seq.audioRate}</samplerate></samplecharacteristics>`
+        + `<channelcount>1</channelcount><layout>stereo</layout><audiochannel><sourcechannel>${ch}</sourcechannel><channellabel>${ch === 1 ? 'left' : 'right'}</channellabel></audiochannel></audio>`).join(''))
       + `</media></file>`;
   };
 
@@ -98,26 +99,31 @@ export function buildXml(plan: EditPlan, seq: SequenceInfo, opts: { name: string
     `<filter><effect><name>Audio Levels</name><effectid>audiolevels</effectid><effectcategory>audiolevels</effectcategory><effecttype>audiolevels</effecttype><mediatype>audio</mediatype>`
     + `<parameter authoringApp="PremierePro"><parameterid>level</parameterid><name>Level</name><valuemin>0</valuemin><valuemax>3.98109</valuemax><value>${gain.toFixed(5)}</value></parameter></effect></filter>`;
 
-  const link = (i: number) =>
+  // Premiere reads a stereo clip as two mono clip items on A1 and A2, all linked to the picture.
+  const link = (i: number, withAudio: boolean) =>
     `<link><linkclipref>v-${i + 1}</linkclipref><mediatype>video</mediatype><trackindex>1</trackindex><clipindex>${i + 1}</clipindex></link>`
-    + `<link><linkclipref>a-${i + 1}</linkclipref><mediatype>audio</mediatype><trackindex>1</trackindex><clipindex>${i + 1}</clipindex><groupindex>1</groupindex></link>`;
+    + (withAudio ? [1, 2].map((ch) => `<link><linkclipref>a${ch}-${i + 1}</linkclipref><mediatype>audio</mediatype><trackindex>${ch}</trackindex><clipindex>${i + 1}</clipindex><groupindex>1</groupindex></link>`).join('') : '');
 
-  const head = (id: string, c: SourceClip, x: { start: number; end: number; in: number; out: number }) =>
-    `<clipitem id="${id}"><name>${esc(c.name)}</name><enabled>TRUE</enabled>`
+  const head = (id: string, c: SourceClip, x: { start: number; end: number; in: number; out: number }, attrs = '') =>
+    `<clipitem id="${id}"${attrs}><masterclipid>masterclip-${seq.clips.indexOf(c) + 1}</masterclipid><name>${esc(c.name)}</name><enabled>TRUE</enabled>`
     + `<duration>${f(c.mediaDuration ?? c.srcIn + (c.end - c.start))}</duration>${rate(fps)}`
     + `<start>${x.start}</start><end>${x.end}</end><in>${x.in}</in><out>${x.out}</out>`;
 
-  const vItems = video.map((v, i) => head(`v-${i + 1}`, v.p.clip, v) + fileRef(v.p) + scale(v.p.zoom) + link(i) + `</clipitem>`).join('');
-  const aItems = audio.filter((a) => a.p.clip.hasAudio !== false).map((a, i) => head(`a-${i + 1}`, a.p.clip, a) + fileRef(a.p)
-    + `<sourcetrack><mediatype>audio</mediatype><trackindex>1</trackindex></sourcetrack>` + level + link(i) + `</clipitem>`).join('');
+  // Clips without audio still take their slot (disabled) so clip indices stay aligned across tracks.
+  const vItems = video.map((v, i) => head(`v-${i + 1}`, v.p.clip, v) + fileRef(v.p) + scale(v.p.zoom) + link(i, v.p.clip.hasAudio !== false) + `</clipitem>`).join('');
+  const aTrack = (ch: number) => audio.map((a, i) => a.p.clip.hasAudio === false ? '' :
+    head(`a${ch}-${i + 1}`, a.p.clip, a, ' premiereChannelType="mono"') + fileRef(a.p)
+    + `<sourcetrack><mediatype>audio</mediatype><trackindex>${ch}</trackindex></sourcetrack>` + level + link(i, true) + `</clipitem>`).join('');
 
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="4"><sequence id="sequence-1">`
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE xmeml>\n<xmeml version="4"><sequence id="sequence-1" explodedTracks="true">`
     + `<name>${esc(opts.name)}</name><duration>${total}</duration>${rate(fps)}`
     + `<timecode>${rate(fps)}<string>00:00:00:00</string><frame>0</frame><displayformat>NDF</displayformat></timecode>`
     + `<media><video><format><samplecharacteristics>${rate(fps)}<width>${seq.width}</width><height>${seq.height}</height>`
     + `<pixelaspectratio>square</pixelaspectratio><fielddominance>none</fielddominance></samplecharacteristics></format>`
     + `<track>${vItems}<enabled>TRUE</enabled><locked>FALSE</locked></track></video>`
     + `<audio><numOutputChannels>2</numOutputChannels><format><samplecharacteristics><depth>16</depth><samplerate>${seq.audioRate}</samplerate></samplecharacteristics></format>`
-    + `<track premiereTrackType="Stereo">${aItems}<enabled>TRUE</enabled><locked>FALSE</locked><outputchannelindex>1</outputchannelindex></track></audio>`
+    + `<outputs>${[1, 2].map((ch) => `<group><index>${ch}</index><numchannels>1</numchannels><downmix>0</downmix><channel><index>${ch}</index></channel></group>`).join('')}</outputs>`
+    + [1, 2].map((ch) => `<track currentExplodedTrackIndex="${ch - 1}" totalExplodedTrackCount="2" premiereTrackType="Stereo">${aTrack(ch)}<enabled>TRUE</enabled><locked>FALSE</locked><outputchannelindex>${ch}</outputchannelindex></track>`).join('')
+    + `</audio>`
     + `</media></sequence></xmeml>\n`;
 }

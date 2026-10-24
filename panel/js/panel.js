@@ -46,6 +46,7 @@ function say(text, isError) {
 function show(screen) {
   $$('.screen').forEach((s) => s.classList.add('hidden'));
   $('#screen-' + screen).classList.remove('hidden');
+  $('#dock').classList.toggle('hidden', screen !== 'home');
 }
 
 // ------------------------------------------------------------ options screen
@@ -94,15 +95,19 @@ async function refreshHeader() {
     $('#seqFps').textContent = String(s.fps).replace('.', ',');
     const r = s.width / s.height;
     $('#seqFmt').textContent = r > 1.5 ? '16:9' : r < 0.7 ? '9:16' : r > 0.95 && r < 1.05 ? '1:1' : '4:5';
+    // Same rule as the done screen: about 4x the raw length by hand.
+    $('#heroSaved').textContent = '~' + Math.max(1, Math.round((s.duration * 4) / 60)) + ' min';
   } catch (e) {
     $('#seqName').textContent = 'Abra uma sequência';
     $('#seqDur').textContent = '--:--';
   }
+  $('#heroName').textContent = firstName();
+  $('#avatarInitial').textContent = (settings.name || 'A').charAt(0).toUpperCase();
   try {
     await Engine.health();
-    $('#engineLed').className = 'led on';
+    $('#engineLed').className = 'dot ok';
   } catch (e) {
-    $('#engineLed').className = 'led red on';
+    $('#engineLed').className = 'dot on';
   }
 }
 
@@ -117,7 +122,7 @@ function paintSteps(step, progress) {
   $('#runSteps').innerHTML = STEPS.map((s, i) => {
     const cls = i < at ? 'done' : i === at ? 'now' : '';
     const label = i < at ? s.done : i === at ? 'Agora: ' + s.now : 'Depois: ' + s.now;
-    return `<div class="step ${cls}"><span class="led"></span>${label}</div>`;
+    return `<div class="step ${cls}"><span class="mark">${i < at ? '✓' : ''}</span>${label}</div>`;
   }).join('');
   $('#runPct').textContent = Math.round(progress) + '%';
   $('#runNow').textContent = at >= 0 ? STEPS[at].now : '';
@@ -169,13 +174,13 @@ function paintReview() {
   $('#revAfter').textContent = fmt(plan.after);
   $('#revInfo').textContent = r.brain === 'nuvem' ? 'cortes decididos pela IA' : 'modo offline';
   $('#revCount').textContent = plan.cuts.length + (plan.cuts.length === 1 ? ' corte' : ' cortes');
+  const longest = Math.max(1, ...plan.cuts.map((c) => c.end - c.start));
   $('#revList').innerHTML = plan.cuts.map((c, i) => `
-    <div class="cut on" data-i="${i}">
-      <div class="box"></div>
-      <div class="body"><div class="kind">${KINDS[c.kind] || c.kind}</div>
-      <div class="text">${c.text ? escapeHtml(c.text) : 'silêncio'}</div></div>
-      <div class="dur mono">${(c.end - c.start).toFixed(1).replace('.', ',')} s</div>
-    </div>`).join('') || '<div class="cut"><div class="body dim">Nada para cortar. O vídeo já está limpo.</div></div>';
+    <div class="cut" data-i="${i}">
+      <div class="cut-top"><span class="kind">${KINDS[c.kind] || c.kind}</span><span class="dur">${(c.end - c.start).toFixed(1).replace('.', ',')} s</span></div>
+      <div class="text">${c.text ? escapeHtml(c.text) : 'silêncio'}</div>
+      <div class="line"><div style="width:${Math.round(((c.end - c.start) / longest) * 100)}%"></div></div>
+    </div>`).join('') || '<div class="cut"><div class="text dim">Nada para cortar. O vídeo já está limpo.</div></div>';
   $$('#revList .cut[data-i]').forEach((el) => el.addEventListener('click', () => toggleCut(Number(el.dataset.i), el)));
 }
 
@@ -183,7 +188,6 @@ function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<'
 
 function toggleCut(i, el) {
   if (kept.has(i)) kept.delete(i); else kept.add(i);
-  el.classList.toggle('on', !kept.has(i));
   el.classList.toggle('kept', kept.has(i));
   const plan = job.result.plan;
   const saved = plan.cuts.reduce((s, c, k) => s + (kept.has(k) ? 0 : c.end - c.start), 0);
@@ -219,13 +223,14 @@ function paintDone() {
   $('#doneTime').textContent = 'feito em ' + Math.max(1, Math.round(r.seconds)) + ' s';
   const count = (k) => plan.cuts.filter((c) => c.kind === k).length;
   const pills = [];
-  if (count('silencio')) pills.push(count('silencio') + ' pausas');
-  if (count('repeticao') + count('falso_inicio')) pills.push(count('repeticao') + count('falso_inicio') + ' repetições');
-  if (count('vicio')) pills.push(count('vicio') + ' vícios');
+  const pill = (n, label) => pills.push(`<span class="pill"><b>${n}</b> ${label}</span>`);
+  if (count('silencio')) pill(count('silencio'), 'pausas');
+  if (count('repeticao') + count('falso_inicio')) pill(count('repeticao') + count('falso_inicio'), 'repetições');
+  if (count('vicio')) pill(count('vicio'), 'vícios');
   const zooms = plan.segments.filter((s) => s.zoom > 1).length;
-  if (zooms) pills.push(zooms + ' zooms');
-  if (plan.gainDb) pills.push('voz nivelada (' + (plan.gainDb > 0 ? '+' : '') + String(plan.gainDb).replace('.', ',') + ' dB)');
-  $('#donePills').innerHTML = pills.map((p) => `<span class="pill">${p}</span>`).join('');
+  if (zooms) pill(zooms, 'zooms');
+  if (plan.gainDb) pill((plan.gainDb > 0 ? '+' : '') + String(plan.gainDb).replace('.', ',') + ' dB', 'na voz');
+  $('#donePills').innerHTML = pills.join('');
   // A careful editor spends about 4x the raw length plus ~15 s per cut on this.
   const minutes = Math.round((plan.before * 4 + plan.cuts.length * 15) / 60);
   $('#doneSaved').textContent = minutes >= 1 ? `~${minutes} min economizados` : '';
