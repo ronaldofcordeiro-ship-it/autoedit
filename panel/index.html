@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="power"><span id="engineLed" class="led"></span></span>
+      AUTO<span class="accent">EDIT</span>
+      <span class="tag">BETA</span>
+      <span class="grow"></span>
+      <button id="settingsBtn" class="icon" title="Ajustes">⚙</button>
+    </div>
+    <div id="seqBar" class="seqbar">
+      <span id="seqName" class="seqname">Abra uma sequência</span>
+      <span id="seqDur" class="mono">--:--</span>
+      <span id="seqFmt" class="mono dim">16:9</span>
+      <span id="seqFps" class="mono dim">--</span>
+    </div>
+  </header>
+
+  <!-- 1. options -->
+  <section id="screen-home" class="screen">
+    <div class="group-title"><span>CORTES</span><span id="countCuts" class="mono dim">0 de 4</span></div>
+    <div class="cards">
+      <div class="card" data-opt="silences">
+        <div class="card-head"><span class="led"></span><b>Cortar silêncios</b></div>
+        <div class="card-sub">Pausas longas saem</div>
+        <div class="seg" data-seg="silenceMode"><button data-v="dinamico" class="on">Dinâmico</button><button data-v="suave">Suave</button></div>
+      </div>
+      <div class="card" data-opt="repetitions">
+        <div class="card-head"><span class="led"></span><b>Tirar repetições</b></div>
+        <div class="card-sub">Fica só a última tentativa</div>
+      </div>
+      <div class="card" data-opt="fillers">
+        <div class="card-head"><span class="led"></span><b>Tirar vícios</b></div>
+        <div class="card-sub">"Ahn", "hum", "ok, valendo"</div>
+      </div>
+      <div class="card" data-opt="jcut">
+        <div class="card-head"><span class="led"></span><b>J-cut nos cortes</b></div>
+        <div class="card-sub">O som entra antes da imagem</div>
+      </div>
+    </div>
+
+    <div class="group-title"><span>VOZ E IMAGEM</span><span id="countVoice" class="mono dim">0 de 2</span></div>
+    <div class="cards">
+      <div class="card" data-opt="levelVoice">
+        <div class="card-head"><span class="led"></span><b>Nivelar a voz</b></div>
+        <div class="card-sub">Volume certo, sem estourar</div>
+      </div>
+      <div class="card" data-opt="zoom">
+        <div class="card-head"><span class="led"></span><b>Zoom</b></div>
+        <div class="card-sub">Nos cortes e nos destaques</div>
+        <div class="seg" data-seg="zoomStrength"><button data-v="suave">Suave</button><button data-v="medio" class="on">Médio</button><button data-v="forte">Forte</button></div>
+        <div class="seg" data-seg="zoomWhere"><button data-v="cuts" class="on">Só nos cortes</button><button data-v="also">Também sem corte</button></div>
+      </div>
+    </div>
+
+    <div class="group-title"><span>EM BREVE</span><span class="mono dim">fase 2 e 3</span></div>
+    <div class="cards soon">
+      <div class="card off"><div class="card-head"><span class="led"></span><b>Correção de cor</b></div><div class="card-sub">Lumetri medido no vídeo</div></div>
+      <div class="card off"><div class="card-head"><span class="led"></span><b>Legendas animadas</b></div><div class="card-sub">Palavra falada em destaque</div></div>
+      <div class="card off"><div class="card-head"><span class="led"></span><b>Efeitos sonoros</b></div><div class="card-sub">Sincronizados com as legendas</div></div>
+      <div class="card off"><div class="card-head"><span class="led"></span><b>Modo Reels</b></div><div class="card-sub">9:16 seguindo o rosto</div></div>
+    </div>
+
+    <div class="footer">
+      <button id="goBtn" class="go"><span class="led red"></span>LIGAR O AUTOEDIT</button>
+      <div class="note">A edição sai numa sequência nova. A sua fica intacta.</div>
+    </div>
+  </section>
+
+  <!-- 2. progress -->
+  <section id="screen-run" class="screen hidden">
+    <div class="hero">
+      <div class="hero-title">Pode relaxar<span id="runName"></span>.</div>
+      <div class="hero-sub">Eu edito, você revisa.</div>
+      <div class="pct"><span id="runPct" class="mono big">0%</span> <span id="runNow" class="dim">começando</span></div>
+      <div class="bar"><div id="runBar" class="bar-fill"></div></div>
+    </div>
+    <div id="runSteps" class="steps"></div>
+    <div class="footer"><button id="cancelBtn" class="wide">Cancelar</button></div>
+  </section>
+
+  <!-- 3. review -->
+  <section id="screen-review" class="screen hidden">
+    <div class="hero">
+      <div class="hero-title">Pronto para revisar.</div>
+      <div class="hero-sub">Desmarque o que quiser manter. Nada foi para a timeline ainda.</div>
+      <div class="stat"><span id="revBefore" class="mono strike dim"></span> <span class="dim">›</span> <span id="revAfter" class="mono big"></span> <span id="revInfo" class="dim small"></span></div>
+    </div>
+    <div class="group-title"><span>O QUE VAI SAIR</span><span id="revCount" class="mono dim"></span></div>
+    <div id="revList" class="cutlist"></div>
+    <div class="footer">
+      <button id="applyBtn" class="go"><span class="led green on"></span>MANDAR PARA A TIMELINE</button>
+      <button id="backBtn" class="wide ghost">Voltar às opções</button>
+    </div>
+  </section>
+
+  <!-- 4. done -->
+  <section id="screen-done" class="screen hidden">
+    <div class="hero">
+      <div class="hero-title">Feito<span id="doneName"></span>. Já está na timeline.</div>
+      <div class="hero-sub"><span class="pill ok">✓ <span id="doneSeq"></span></span></div>
+      <div class="stat"><span id="doneBefore" class="mono strike dim"></span> <span class="dim">›</span> <span id="doneAfter" class="mono big"></span> <span id="doneTime" class="dim small"></span></div>
+      <div id="donePills" class="pills"></div>
+      <div id="doneSaved" class="saved"></div>
+    </div>
+    <div class="footer">
+      <button id="againBtn" class="go"><span class="led red"></span>EDITAR OUTRO</button>
+      <button id="undoBtn" class="wide ghost">↶ Desfazer esta edição</button>
+    </div>
+  </section>
+
+  <!-- settings -->
+  <section id="screen-settings" class="screen hidden">
+    <div class="group-title"><span>AJUSTES</span></div>
+    <label class="field">Seu nome<input id="setName" type="text" placeholder="Como devo te chamar"></label>
+    <label class="field">Chave de licença<input id="setLicense" type="text" placeholder="AE-XXXX-XXXX"></label>
+    <label class="field">Idioma do vídeo
+      <select id="setLang"><option value="pt">Português</option><option value="en">English</option><option value="es">Español</option></select>
+    </label>
+    <label class="field">Servidor da IA<input id="setBrain" type="text"></label>
+    <label class="field">Motor local<input id="setEngine" type="text"></label>
+    <div class="footer"><button id="saveSettings" class="go">SALVAR</button></div>
+  </section>
+
+  <footer id="message" class="message"></footer>
+
+  <script src="js/engine.js"></script>
+  <script src="js/premiere.js"></script>
+  <script src="js/panel.js"></script>
+</body>
+</html>

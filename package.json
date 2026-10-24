@@ -1,0 +1,17 @@
+{
+  "name": "autoedit",
+  "private": true,
+  "type": "module",
+  "workspaces": ["core", "engine", "server"],
+  "scripts": {
+    "test": "node --import tsx --test core/test/*.test.ts",
+    "check": "tsc -p core --noEmit && tsc -p engine --noEmit && tsc -p server --noEmit",
+    "engine": "tsx engine/src/main.ts",
+    "server": "tsx server/src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

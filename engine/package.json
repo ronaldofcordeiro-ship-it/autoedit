@@ -1,0 +1,1 @@
+{ "name": "@autoedit/engine", "private": true, "type": "module", "dependencies": { "@autoedit/core": "*" } }
