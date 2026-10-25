@@ -9,7 +9,7 @@ import {
   buildPlan, buildXml, DEFAULT_OPTIONS, heuristicDecisions,
   type Decisions, type EditOptions, type EditPlan, type Range, type SequenceInfo, type Word,
 } from '@autoedit/core';
-import { loudness, probe, silences, timelineAudio, transcribe } from './media.ts';
+import { loudness, probe, silences, silenceThreshold, timelineAudio, transcribe } from './media.ts';
 
 export const STEPS = [
   { id: 'probe', now: 'lendo a sua sequência', done: 'Li a sua sequência' },
@@ -137,10 +137,9 @@ async function runJob(job: Job, req: JobRequest) {
   await timelineAudio(clips, duration, wav, 'analysis', signal);
   await timelineAudio(clips, duration, mix, 'full', signal);
   const loud = await loudness(mix, signal);
-  // Silence threshold follows the voice: 20 dB under its average loudness.
-  const voiceLoud = await loudness(wav, signal);
-  const noise = Number.isFinite(voiceLoud.integrated) ? Math.max(-55, Math.min(-28, voiceLoud.integrated - 20)) : -40;
-  const quiet = await silences(wav, noise, 0.3, signal);
+  // Silence threshold sits between this recording's room noise and its voice.
+  const noise = await silenceThreshold(wav, signal);
+  const quiet = await silences(wav, noise, 0.2, signal);
 
   at('listen', 20);
   const words = req.words?.length ? req.words : await transcribe(wav, options.language, signal);

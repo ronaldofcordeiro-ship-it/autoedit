@@ -35,18 +35,17 @@ export function wordGaps(words: Word[], duration: number, minGap: number, pad: n
   return out;
 }
 
-/** Audio silences (from ffmpeg) that do not run over a spoken word. */
-export function quietRanges(silences: Range[], words: Word[], minGap: number, pad: number): Range[] {
+/**
+ * Audio silences (from ffmpeg), padded so word edges are never clipped.
+ * Whisper's word times drift (it stretches words over the pause after them
+ * and places words inside pauses the audio shows are empty), so the audio is
+ * trusted over the transcript here; the threshold is set per recording.
+ */
+export function quietRanges(silences: Range[], minGap: number, pad: number): Range[] {
   const out: Range[] = [];
-  for (const s of silences) {
-    let start = s.start, end = s.end;
-    for (const w of words) {
-      const core = { start: w.start + 0.05, end: w.end - 0.05 };
-      if (core.end <= start || core.start >= end) continue;
-      // A word sits inside: keep the longer side of the silence.
-      if (core.start - start >= end - core.end) end = core.start; else start = core.end;
-    }
-    if (end - start >= minGap) out.push({ start: start + pad, end: end - pad });
+  for (const s of mergeRanges(silences, 0.06)) {
+    if (s.end - s.start < minGap) continue;
+    out.push({ start: s.start === 0 ? 0 : s.start + pad, end: s.end - pad });
   }
   return out;
 }
@@ -72,7 +71,7 @@ export function buildPlan(input: {
     const { minGap, pad } = SILENCE[options.silences.mode];
     const quiet = mergeRanges([
       ...wordGaps(words, duration, minGap, pad),
-      ...quietRanges(input.silences, words, minGap, pad),
+      ...quietRanges(input.silences, minGap, pad),
     ]);
     for (const r of quiet) cuts.push({ ...r, kind: 'silencio', text: '' });
   }

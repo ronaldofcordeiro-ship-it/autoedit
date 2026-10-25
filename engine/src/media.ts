@@ -40,14 +40,18 @@ async function must(cmd: string, args: string[], signal?: AbortSignal): Promise<
 }
 
 export async function probe(clip: SourceClip): Promise<SourceClip> {
-  const r = await must(tool('ffprobe'), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,width,height', '-of', 'json', clip.path]);
+  const r = await must(tool('ffprobe'), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,width,height:stream_tags=rotate:stream_side_data=rotation', '-of', 'json', clip.path]);
   const j = JSON.parse(r.stdout);
   const v = (j.streams || []).find((s: any) => s.codec_type === 'video');
+  // Phones store portrait video as landscape pixels plus a rotation flag;
+  // Premiere shows it upright, so the XML must describe it upright too.
+  const rot = Number(v?.tags?.rotate ?? (v?.side_data_list || []).find((d: any) => d.rotation !== undefined)?.rotation ?? 0);
+  const turned = Math.abs(rot) % 180 === 90;
   return {
     ...clip,
     mediaDuration: Number(j.format?.duration) || clip.mediaDuration,
-    width: v?.width ?? clip.width,
-    height: v?.height ?? clip.height,
+    width: (turned ? v?.height : v?.width) ?? clip.width,
+    height: (turned ? v?.width : v?.height) ?? clip.height,
     hasAudio: (j.streams || []).some((s: any) => s.codec_type === 'audio'),
   };
 }
@@ -94,6 +98,20 @@ export async function silences(wav: string, noiseDb: number, minDur: number, sig
     if (e && start !== null) { out.push({ start, end: Number(e[1]) }); start = null; }
   }
   return out;
+}
+
+/**
+ * Picks the silence threshold from the recording itself: halfway-ish between
+ * the room's noise floor and the voice, measured in 100 ms windows.
+ */
+export async function silenceThreshold(wav: string, signal?: AbortSignal): Promise<number> {
+  const r = await must(tool('ffmpeg'), ['-v', 'error', '-i', wav, '-af',
+    'asetnsamples=n=1600,astats=metadata=1:reset=1,ametadata=mode=print:key=lavfi.astats.Overall.RMS_level:file=-', '-f', 'null', '-'], signal);
+  const db = (r.stdout.match(/RMS_level=(-?[\d.]+)/g) || []).map((m) => Number(m.split('=')[1])).filter((x) => Number.isFinite(x) && x > -120).sort((a, b) => a - b);
+  if (db.length < 10) return -40;
+  const at = (q: number) => db[Math.min(db.length - 1, Math.floor(q * db.length))];
+  const floor = at(0.1), voice = at(0.9);
+  return Math.max(-60, Math.min(-20, floor + (voice - floor) * 0.3));
 }
 
 /** Word-level transcript with whisper.cpp (one "segment" per word). */

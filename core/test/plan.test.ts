@@ -77,3 +77,21 @@ test('review: a cut the editor keeps comes back', () => {
   assert.ok(again.after > first.after + 1);
   assert.ok(!again.cuts.some((c) => c.kind === 'repeticao'));
 });
+
+test('silences: audio wins when whisper puts words inside an empty pause', () => {
+  // Real phone take: whisper starts at 0.08 s, the audio is silent until 1.03 s,
+  // and "café." is stretched over the 6.86–7.38 pause.
+  const words: Word[] = [
+    { text: 'Eu', start: 0.08, end: 0.18 }, { text: 'mesmo', start: 0.18, end: 0.64 }, { text: 'não', start: 0.64, end: 0.92 },
+    { text: 'abro', start: 0.92, end: 1.28 }, { text: 'mão', start: 1.37, end: 4.2 }, { text: 'meu', start: 6.37, end: 6.46 },
+    { text: 'café.', start: 6.46, end: 7.0 }, { text: 'E', start: 7.0, end: 7.1 }, { text: 'você', start: 7.1, end: 8.8 },
+    { text: 'café?', start: 8.46, end: 9.24 }, { text: 'Conta', start: 9.24, end: 9.7 }, { text: 'experiência.', start: 10.57, end: 11.04 },
+  ];
+  const silences = [{ start: 0, end: 1.03175 }, { start: 1.03744, end: 1.25419 }, { start: 6.86431, end: 7.37956 }, { start: 8.90831, end: 9.76988 }, { start: 11.1474, end: 15.03 }];
+  const plan = buildPlan({ words, silences, duration: 15.03, decisions: { cuts: [], highlights: [] }, options: DEFAULT_OPTIONS });
+  const q = plan.cuts.filter((c) => c.kind === 'silencio').map((c) => [Math.round(c.start * 10) / 10, Math.round(c.end * 10) / 10]);
+  assert.deepEqual(q[0][0], 0);
+  assert.ok(q[0][1] >= 1.1, 'leading silence cut up to the voice');
+  assert.ok(q.some(([s, e]) => s <= 7.0 && e >= 7.2), 'pause inside the take is cut');
+  assert.ok(q.some(([s, e]) => s <= 9.0 && e >= 9.6), 'second pause is cut');
+});
