@@ -21,5 +21,6 @@ const Engine = (() => {
     status: (id) => call('GET', `/jobs/${id}`),
     cancel: (id) => call('POST', `/jobs/${id}/cancel`, {}),
     rebuild: (id, keep) => call('POST', `/jobs/${id}/rebuild`, { keep }),
+    log: (text) => call('POST', '/log', { text: String(text) }).catch(() => {}),
   };
 })();

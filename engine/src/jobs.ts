@@ -5,6 +5,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { log } from './log.ts';
 import {
   buildPlan, buildXml, DEFAULT_OPTIONS, heuristicDecisions, transcriptWords,
   type Decisions, type EditOptions, type EditPlan, type Range, type SequenceInfo, type Word,
@@ -68,6 +69,9 @@ interface BuildInputs {
 const jobs = new Map<string, Job>();
 
 export function getJob(id: string) { return jobs.get(id); }
+export function listJobs() {
+  return [...jobs.values()].map((j) => ({ id: j.id, status: j.status, step: j.step, progress: j.progress, error: j.error, startedAt: j.startedAt }));
+}
 
 export function publicJob(j: Job) {
   const { abort, inputs, ...rest } = j;
@@ -77,17 +81,19 @@ export function publicJob(j: Job) {
 export function startJob(req: JobRequest): Job {
   const job: Job = { id: randomUUID(), status: 'rodando', step: 'probe', progress: 0, abort: new AbortController(), startedAt: Date.now() };
   jobs.set(job.id, job);
+  log('job', job.id, 'começou:', req.sequence.name, req.sequence.clips.length, 'clipes,', req.transcripts?.length ?? 0, 'transcrições do Premiere');
   runJob(job, req).catch((e) => {
     if (job.status === 'cancelado') return;
     job.status = 'erro';
     job.error = e instanceof Error ? e.message : String(e);
+    log('job', job.id, 'erro', e);
   });
   return job;
 }
 
 export function cancelJob(id: string) {
   const j = jobs.get(id);
-  if (j && j.status === 'rodando') { j.status = 'cancelado'; j.abort.abort(); }
+  if (j && j.status === 'rodando') { j.status = 'cancelado'; j.abort.abort(); log('job', id, 'cancelado pelo painel'); }
 }
 
 function mergeOptions(o: Partial<EditOptions> | undefined): EditOptions {
@@ -162,6 +168,7 @@ async function runJob(job: Job, req: JobRequest) {
   job.result = build(job.inputs, [], job.startedAt);
   job.progress = 100;
   job.status = 'pronto';
+  log('job', job.id, 'pronto em', Math.round((Date.now() - job.startedAt) / 1000), 's,', job.result?.plan.cuts.length, 'cortes');
 }
 
 function build(x: BuildInputs, keep: Range[], startedAt: number, version = 0): JobResult {

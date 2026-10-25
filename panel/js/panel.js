@@ -40,7 +40,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function say(text, isError) {
   const m = $('#message');
   m.textContent = text || '';
-  m.className = 'message' + (isError ? ' err' : '');
+  m.className = 'message' + (isError ? ' err' : '') + (text ? '' : ' hidden');
 }
 
 function show(screen) {
@@ -138,6 +138,17 @@ function paintSteps(step, progress, nowText) {
   $('#runBar').style.width = progress + '%';
 }
 
+// A busy engine can miss a poll now and then; only give up after a few in a row.
+async function statusWithRetry(current) {
+  for (let i = 0; ; i++) {
+    try { return await Engine.status(current.id); } catch (e) {
+      if (i >= 5) throw e;
+      Engine.log('status falhou (' + (i + 1) + '): ' + (e.message || e));
+      await sleep(1000);
+    }
+  }
+}
+
 async function go() {
   say('');
   let sequence;
@@ -172,7 +183,7 @@ async function go() {
     while (job.status === 'rodando') {
       await sleep(400);
       if (cancelled) return;
-      job = await Engine.status(job.id);
+      job = await statusWithRetry(job);
       shown = Math.max(shown, Math.min(job.progress + 8, shown + 0.6));
       paintSteps(job.step, Math.max(job.progress, shown));
     }
@@ -182,8 +193,9 @@ async function go() {
     paintReview();
     show('review');
   } catch (e) {
+    Engine.log('edição falhou: ' + (e.message || e));
     show('home');
-    say(e.message || String(e), true);
+    say('Não deu certo: ' + (e.message || String(e)), true);
   }
 }
 
@@ -305,6 +317,7 @@ $('#undoBtn').addEventListener('click', undo);
 $('#settingsBtn').addEventListener('click', () => ($('#screen-settings').classList.contains('hidden') ? openSettings() : show('home')));
 $('#saveSettings').addEventListener('click', saveSettings);
 
+say('');
 paintOptions();
 refreshHeader();
 setInterval(refreshHeader, 4000);

@@ -169,5 +169,5 @@ b { font-weight: 700; color: #f2f2f2; }
   background-color: #1a1a1a; color: #ececec; border: 1px solid #333333; border-radius: 7px;
 }
 
-.message { padding: 4px 14px 12px; color: #a6a6a6; font-size: 11px; }
-.message.err { color: #ff8f8f; }
+.message { flex-shrink: 0; margin: 0 12px 8px; padding: 8px 10px; border-radius: 8px; background-color: #242424; border: 1px solid #2f2f2f; color: #bdbdbd; font-size: 11px; }
+.message.err { background-color: #3a1f20; border-color: #5c2a2c; color: #ffb3b3; }
