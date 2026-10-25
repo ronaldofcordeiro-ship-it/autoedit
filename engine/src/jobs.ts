@@ -142,7 +142,7 @@ async function runJob(job: Job, req: JobRequest) {
   const quiet = await silences(wav, noise, 0.2, signal);
 
   at('listen', 20);
-  const words = req.words?.length ? req.words : await transcribe(wav, options.language, signal);
+  const words = req.words?.length ? req.words : await transcribe(wav, options.language, signal, (pct) => at('listen', 20 + Math.round(pct * 0.5)));
 
   at('decide', 70);
   const fromBrain = await askBrain(req.brain, words, options, signal);

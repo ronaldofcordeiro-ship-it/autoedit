@@ -1,6 +1,7 @@
 // ffmpeg / ffprobe / whisper.cpp wrappers. Binaries come from the installer's
 // bin folder, an env override, or the PATH, in that order.
 
+import { cpus } from 'node:os';
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -22,19 +23,19 @@ export function tool(name: 'ffmpeg' | 'ffprobe' | 'whisper-cli'): string {
 
 export interface RunResult { code: number; stdout: string; stderr: string }
 
-export function run(cmd: string, args: string[], signal?: AbortSignal): Promise<RunResult> {
+export function run(cmd: string, args: string[], signal?: AbortSignal, onStderr?: (chunk: string) => void): Promise<RunResult> {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { windowsHide: true, signal });
     let stdout = '', stderr = '';
     p.stdout.on('data', (d) => (stdout += d));
-    p.stderr.on('data', (d) => (stderr += d));
+    p.stderr.on('data', (d) => { stderr += d; onStderr?.(String(d)); });
     p.on('error', reject);
     p.on('close', (code) => resolve({ code: code ?? -1, stdout, stderr }));
   });
 }
 
-async function must(cmd: string, args: string[], signal?: AbortSignal): Promise<RunResult> {
-  const r = await run(cmd, args, signal);
+async function must(cmd: string, args: string[], signal?: AbortSignal, onStderr?: (chunk: string) => void): Promise<RunResult> {
+  const r = await run(cmd, args, signal, onStderr);
   if (r.code !== 0) throw new Error(`${cmd.split(/[\\/]/).pop()} falhou: ${r.stderr.trim().split('\n').slice(-3).join(' ')}`);
   return r;
 }
@@ -119,11 +120,18 @@ export async function silenceThreshold(wav: string, signal?: AbortSignal): Promi
 }
 
 /** Word-level transcript with whisper.cpp (one "segment" per word). */
-export async function transcribe(wav: string, language: string, signal?: AbortSignal): Promise<Word[]> {
+export async function transcribe(wav: string, language: string, signal?: AbortSignal, onProgress?: (pct: number) => void): Promise<Word[]> {
   const model = process.env.AUTOEDIT_WHISPER_MODEL || join(here, '..', 'models', 'ggml-small.bin');
   if (!existsSync(model)) throw new Error('Modelo de transcrição não encontrado. Reinstale o AutoEdit.');
   const base = wav.replace(/\.wav$/, '');
-  await must(tool('whisper-cli'), ['-m', model, '-f', wav, '-l', language, '-ml', '1', '-sow', '-oj', '-of', base, '-np'], signal);
+  // Greedy decoding on every core: several times faster than the default
+  // beam search, and word timing comes from the audio anyway.
+  const threads = String(Math.max(2, Math.min(16, cpus().length)));
+  await must(tool('whisper-cli'), ['-m', model, '-f', wav, '-l', language, '-ml', '1', '-sow', '-oj', '-of', base,
+    '-t', threads, '-bs', '1', '-bo', '1', '-pp'], signal, (chunk) => {
+    const m = chunk.match(/progress = +(\d+)%/g);
+    if (m && onProgress) onProgress(Number(m[m.length - 1].replace(/\D/g, '')));
+  });
   const j = JSON.parse(readFileSync(base + '.json', 'utf8'));
   const words: Word[] = [];
   for (const seg of j.transcription || []) {
