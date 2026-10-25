@@ -3,6 +3,7 @@
 /* Header, scrolling middle, button dock: a column that fills the panel.
    UXP panels don't scroll the body, so the middle scrolls on its own. */
 html, body { height: 100%; }
+body { height: 100vh; }
 body {
   display: flex; flex-direction: column; overflow: hidden;
   margin: 0; padding: 0;
