@@ -68,7 +68,7 @@ $$('.card[data-opt]').forEach((card) => card.addEventListener('click', (e) => {
   save('autoedit.options', options);
   paintOptions();
 }));
-$$('.seg[data-seg] button').forEach((b) => b.addEventListener('click', () => {
+$$('.seg[data-seg] .btn').forEach((b) => b.addEventListener('click', () => {
   options[b.parentElement.dataset.seg] = b.dataset.v;
   save('autoedit.options', options);
   paintOptions();
@@ -195,8 +195,9 @@ function toggleCut(i, el) {
 }
 
 async function apply() {
+  if ($('#applyBtn').classList.contains('disabled')) return;
   say('');
-  $('#applyBtn').disabled = true;
+  $('#applyBtn').classList.add('disabled');
   try {
     const plan = job.result.plan;
     if (kept.size) {
@@ -209,7 +210,7 @@ async function apply() {
   } catch (e) {
     say(e.message || String(e), true);
   } finally {
-    $('#applyBtn').disabled = false;
+    $('#applyBtn').classList.remove('disabled');
   }
 }
 

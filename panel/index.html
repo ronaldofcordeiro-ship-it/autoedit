@@ -9,7 +9,7 @@
     <span class="power"><img src="img/power.svg" width="12" height="12"><span id="engineLed" class="dot"></span></span>
     <span class="brand">Auto<b>Edit</b></span>
     <span class="grow"></span>
-    <button id="settingsBtn" class="avatar" title="Ajustes"><span id="avatarInitial">A</span></button>
+    <div role="button" id="settingsBtn" class="btn avatar" title="Ajustes"><span id="avatarInitial">A</span></div>
   </header>
 
   <!-- 1. options -->
@@ -41,7 +41,7 @@
           <div class="card-sub">Pausas longas saem</div>
           <div class="badges"><span class="badge b-on">Ligado<span class="dot on"></span></span><span class="badge b-off">Desligado</span></div>
         </div>
-        <div class="seg" data-seg="silenceMode"><button data-v="dinamico" class="on">⚡ Dinâmico</button><button data-v="suave">Suave</button></div>
+        <div class="seg" data-seg="silenceMode"><div role="button" data-v="dinamico" class="btn on">⚡ Dinâmico</div><div role="button" data-v="suave" class="btn">Suave</div></div>
       </div>
       <div class="card" data-opt="repetitions">
         <div class="art"><img src="img/repeticao.svg"></div>
@@ -96,8 +96,8 @@
             <div class="badges"><span class="badge b-on">Ligado<span class="dot on"></span></span><span class="badge b-off">Desligado</span></div>
           </div>
         </div>
-        <div class="seg" data-seg="zoomStrength"><button data-v="suave">Suave</button><button data-v="medio" class="on">Médio</button><button data-v="forte">Forte</button></div>
-        <div class="seg" data-seg="zoomWhere"><button data-v="cuts" class="on">Só nos cortes</button><button data-v="also">Também sem corte</button></div>
+        <div class="seg" data-seg="zoomStrength"><div role="button" data-v="suave" class="btn">Suave</div><div role="button" data-v="medio" class="btn on">Médio</div><div role="button" data-v="forte" class="btn">Forte</div></div>
+        <div class="seg" data-seg="zoomWhere"><div role="button" data-v="cuts" class="btn on">Só nos cortes</div><div role="button" data-v="also" class="btn">Também sem corte</div></div>
       </div>
     </div>
 
@@ -135,7 +135,7 @@
   </section>
 
   <div id="dock" class="dock">
-    <button id="goBtn" class="big"><img src="img/power.svg" width="13" height="13">Ligar o AutoEdit<span class="dot on corner"></span></button>
+    <div role="button" id="goBtn" class="btn big"><img src="img/power.svg" width="13" height="13">Ligar o AutoEdit<span class="dot on corner"></span></div>
     <div class="note">A edição sai numa cópia da sequência. A sua fica intacta.</div>
   </div>
 
@@ -153,7 +153,7 @@
       <div class="bar"><div id="runBar" class="bar-fill"></div></div>
     </div>
     <div id="runSteps" class="panel steps"></div>
-    <button id="cancelBtn" class="outline">Cancelar</button>
+    <div role="button" id="cancelBtn" class="btn outline">Cancelar</div>
   </section>
 
   <!-- 3. review -->
@@ -169,8 +169,8 @@
       <div class="panel-title"><b>O que vai sair</b><span id="revCount" class="dim"></span></div>
       <div id="revList" class="cutlist"></div>
     </div>
-    <button id="applyBtn" class="big"><img src="img/check.svg" width="13" height="13">Mandar para a timeline<span class="dot on corner"></span></button>
-    <button id="backBtn" class="outline">Voltar às opções</button>
+    <div role="button" id="applyBtn" class="btn big"><img src="img/check.svg" width="13" height="13">Mandar para a timeline<span class="dot on corner"></span></div>
+    <div role="button" id="backBtn" class="btn outline">Voltar às opções</div>
   </section>
 
   <!-- 4. done -->
@@ -190,8 +190,8 @@
       <div id="doneSeq" class="dim small seqline"></div>
     </div>
     <div class="panel saved-panel"><span id="doneSaved"></span></div>
-    <button id="againBtn" class="big">Editar outro ↻<span class="dot on corner"></span></button>
-    <button id="undoBtn" class="outline">↶ Desfazer esta edição</button>
+    <div role="button" id="againBtn" class="btn big">Editar outro ↻<span class="dot on corner"></span></div>
+    <div role="button" id="undoBtn" class="btn outline">↶ Desfazer esta edição</div>
   </section>
 
   <!-- settings -->
@@ -206,7 +206,7 @@
       <label class="field">Servidor da IA<input id="setBrain" type="text"></label>
       <label class="field">Motor local<input id="setEngine" type="text"></label>
     </div>
-    <button id="saveSettings" class="big">Salvar</button>
+    <div role="button" id="saveSettings" class="btn big">Salvar</div>
   </section>
 
   <footer id="message" class="message"></footer>

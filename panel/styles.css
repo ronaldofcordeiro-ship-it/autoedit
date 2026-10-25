@@ -22,6 +22,7 @@ b { font-weight: 700; color: #f2f2f2; }
 .brand { font-size: 15px; color: #bdbdbd; }
 .brand b { margin-left: 3px; }
 .avatar {
+  display: flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; padding: 0; border-radius: 12px; border: 0;
   background-color: #e5484d; color: #ffffff; font-weight: 700; font-size: 11px;
 }
@@ -83,15 +84,15 @@ b { font-weight: 700; color: #f2f2f2; }
 
 .seg { display: none; margin: 0 8px 8px; padding: 3px; background-color: #1a1a1a; border: 1px solid #2c2c2c; border-radius: 8px; }
 .card.on .seg { display: flex; }
-.seg button {
-  flex: 1; margin: 0; padding: 5px 0; border: 0; border-radius: 6px;
+.seg .btn {
+  flex: 1; text-align: center; margin: 0; padding: 5px 0; border: 0; border-radius: 6px;
   background-color: transparent; color: #8f8f8f; font-size: 10.5px; font-weight: 600;
 }
-.seg button.on { background-color: #333333; color: #f0f0f0; }
+.seg .btn.on { background-color: #333333; color: #f0f0f0; }
 
 /* ---------- buttons */
-button { font-family: inherit; font-size: 12px; color: #d4d4d4; cursor: pointer; }
-button:disabled { opacity: 0.4; cursor: default; }
+.btn { box-sizing: border-box; user-select: none; font-family: inherit; font-size: 12px; color: #d4d4d4; cursor: pointer; }
+.btn.disabled { opacity: 0.4; cursor: default; }
 .big {
   position: relative; display: flex; align-items: center; justify-content: center; width: 100%;
   margin-top: 10px; padding: 12px 0; border-radius: 10px;
@@ -101,7 +102,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .big img { margin-right: 8px; }
 .corner { position: absolute; top: 8px; right: 10px; }
 .outline {
-  display: block; width: 100%; margin-top: 8px; padding: 10px 0; border-radius: 10px;
+  display: block; width: 100%; margin-top: 8px; padding: 10px 0; text-align: center; border-radius: 10px;
   background-color: transparent; border: 1px solid #333333; color: #d4d4d4; font-weight: 600;
 }
 .outline:hover { background-color: #232323; }
