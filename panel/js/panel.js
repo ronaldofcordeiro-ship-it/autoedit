@@ -13,7 +13,7 @@ const STEPS = [
 ];
 
 // ------------------------------------------------------------ settings
-const DEFAULT_SETTINGS = { name: '', license: '', language: 'pt', brain: 'https://api.autoedit.app', engine: 'http://127.0.0.1:47380' };
+const DEFAULT_SETTINGS = { name: '', license: '', language: 'pt', brain: '', engine: 'http://127.0.0.1:47380' };
 const DEFAULT_OPTIONS = {
   silences: true, silenceMode: 'dinamico', repetitions: true, fillers: true, jcut: true,
   levelVoice: true, zoom: false, zoomStrength: 'medio', zoomWhere: 'cuts',
