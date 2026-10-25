@@ -51,7 +51,15 @@ function show(screen) {
 
 // ------------------------------------------------------------ options screen
 function paintOptions() {
-  $$('.card[data-opt]').forEach((card) => card.classList.toggle('on', !!options[card.dataset.opt]));
+  // Premiere's UXP doesn't always restyle children when a parent class changes,
+  // so the on/off pieces are shown and hidden directly.
+  $$('.card[data-opt]').forEach((card) => {
+    const on = !!options[card.dataset.opt];
+    card.classList.toggle('on', on);
+    card.querySelectorAll('.b-on').forEach((el) => { el.style.display = on ? 'inline-flex' : 'none'; });
+    card.querySelectorAll('.b-off').forEach((el) => { el.style.display = on ? 'none' : 'inline-flex'; });
+    card.querySelectorAll('.seg').forEach((el) => { el.style.display = on ? 'flex' : 'none'; });
+  });
   $$('.seg[data-seg]').forEach((seg) => {
     const v = options[seg.dataset.seg];
     Array.from(seg.children).forEach((b) => b.classList.toggle('on', b.dataset.v === v));
