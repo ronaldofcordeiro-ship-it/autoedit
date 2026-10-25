@@ -101,8 +101,10 @@ export async function silences(wav: string, noiseDb: number, minDur: number, sig
 }
 
 /**
- * Picks the silence threshold from the recording itself: halfway-ish between
- * the room's noise floor and the voice, measured in 100 ms windows.
+ * Picks the silence threshold from the recording itself, in 100 ms windows:
+ * 22 dB under the voice (its loud windows), but always well above the room's
+ * noise floor. Measured on real takes: phone (floor -70, voice -16 → -38) and
+ * a camera in a shop (floor -50, voice -8 → -30).
  */
 export async function silenceThreshold(wav: string, signal?: AbortSignal): Promise<number> {
   const r = await must(tool('ffmpeg'), ['-v', 'error', '-i', wav, '-af',
@@ -111,7 +113,7 @@ export async function silenceThreshold(wav: string, signal?: AbortSignal): Promi
   if (db.length < 10) return -40;
   const at = (q: number) => db[Math.min(db.length - 1, Math.floor(q * db.length))];
   const floor = at(0.1), voice = at(0.9);
-  return Math.max(-60, Math.min(-20, floor + (voice - floor) * 0.3));
+  return Math.max(-60, Math.min(-20, Math.max(voice - 22, floor + 8)));
 }
 
 /** Word-level transcript with whisper.cpp (one "segment" per word). */
