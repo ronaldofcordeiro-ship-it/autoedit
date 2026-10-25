@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import {
-  buildPlan, buildXml, DEFAULT_OPTIONS, heuristicDecisions,
+  buildPlan, buildXml, DEFAULT_OPTIONS, heuristicDecisions, transcriptWords,
   type Decisions, type EditOptions, type EditPlan, type Range, type SequenceInfo, type Word,
 } from '@autoedit/core';
 import { loudness, probe, silences, silenceThreshold, timelineAudio, transcribe } from './media.ts';
@@ -24,7 +24,9 @@ export type StepId = (typeof STEPS)[number]['id'];
 export interface JobRequest {
   sequence: SequenceInfo;
   options?: Partial<EditOptions>;
-  words?: Word[];          // a transcript the panel already has (Premiere's own)
+  words?: Word[];          // a ready transcript in timeline time
+  /** Premiere's own transcripts (Transcript.exportToJSON), one per source clip index. */
+  transcripts?: { clip: number; json: string }[];
   outDir?: string;
   brain?: { url: string; license?: string };
 }
@@ -142,7 +144,13 @@ async function runJob(job: Job, req: JobRequest) {
   const quiet = await silences(wav, noise, 0.2, signal);
 
   at('listen', 20);
-  const words = req.words?.length ? req.words : await transcribe(wav, options.language, signal, (pct) => at('listen', 20 + Math.round(pct * 0.5)));
+  let words = req.words?.length ? req.words : [];
+  if (!words.length && req.transcripts?.length) {
+    // Kept next to the edit so a transcript Premiere wrote in a new shape can be looked at.
+    writeFileSync(join(dir, 'premiere-transcricao.json'), JSON.stringify(req.transcripts));
+    words = transcriptWords(clips, req.transcripts);
+  }
+  if (!words.length) words = await transcribe(wav, options.language, signal, (pct) => at('listen', 20 + Math.round(pct * 0.5)));
 
   at('decide', 70);
   const fromBrain = await askBrain(req.brain, words, options, signal);

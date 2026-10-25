@@ -126,15 +126,15 @@ let kept = new Set(); // indices of cuts the editor un-ticked
 let edited = null;    // the sequence we created, for undo
 let cancelled = false;
 
-function paintSteps(step, progress) {
+function paintSteps(step, progress, nowText) {
   const at = STEPS.findIndex((s) => s.id === step);
   $('#runSteps').innerHTML = STEPS.map((s, i) => {
     const cls = i < at ? 'done' : i === at ? 'now' : '';
-    const label = i < at ? s.done : i === at ? 'Agora: ' + s.now : 'Depois: ' + s.now;
+    const label = i < at ? s.done : i === at ? 'Agora: ' + (nowText || s.now) : 'Depois: ' + s.now;
     return `<div class="step ${cls}"><span class="mark">${i < at ? '✓' : ''}</span>${label}</div>`;
   }).join('');
   $('#runPct').textContent = Math.round(progress) + '%';
-  $('#runNow').textContent = at >= 0 ? STEPS[at].now : '';
+  $('#runNow').textContent = at >= 0 ? (nowText || STEPS[at].now) : '';
   $('#runBar').style.width = progress + '%';
 }
 
@@ -151,8 +151,19 @@ async function go() {
   paintSteps('probe', 0);
   show('run');
   try {
+    // Premiere's own transcription is much faster than the engine's (GPU);
+    // if this Premiere can't, the engine transcribes with whisper instead.
+    let transcripts = [];
+    try {
+      paintSteps('listen', 4, 'pedindo a transcrição ao Premiere');
+      const status = (text) => { if (!cancelled) paintSteps('listen', 10, text); };
+      status.cancelled = () => cancelled;
+      transcripts = await Premiere.transcripts(settings.language, status);
+    } catch (e) { transcripts = []; }
+    if (cancelled) return;
     job = await Engine.start({
       sequence,
+      transcripts,
       options: engineOptions(),
       brain: settings.brain ? { url: settings.brain, license: settings.license } : undefined,
     });

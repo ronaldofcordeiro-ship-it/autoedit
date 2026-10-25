@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildPlan, buildXml, DEFAULT_OPTIONS, findFillers, findRepetitions, heuristicDecisions, pathUrl, type Word } from '../src/index.ts';
+import { buildPlan, buildXml, DEFAULT_OPTIONS, findFillers, findRepetitions, heuristicDecisions, parsePremiereTranscript, pathUrl, transcriptWords, type Word } from '../src/index.ts';
 
 const W = (spec: string, start = 0, gap = 0.05, len = 0.3): Word[] => {
   // "a b | c" : "|" is a 1 s pause
@@ -94,4 +94,17 @@ test('silences: audio wins when whisper puts words inside an empty pause', () =>
   assert.ok(q[0][1] >= 1.1, 'leading silence cut up to the voice');
   assert.ok(q.some(([s, e]) => s <= 7.0 && e >= 7.2), 'pause inside the take is cut');
   assert.ok(q.some(([s, e]) => s <= 9.0 && e >= 9.6), 'second pause is cut');
+});
+
+test('premiere transcript: words in any unit land on the timeline', () => {
+  const json = JSON.stringify({ language: 'pt-br', segments: [{ start: 0, duration: 5, text: 'olá tudo bem', words: [
+    { text: 'olá', start: 1.0, duration: 0.4 }, { text: 'tudo', start: 1.5, duration: 0.3 }, { text: 'bem', start: 6.2, duration: 0.3 },
+  ] }] });
+  const clips = [{ path: 'a.mp4', name: 'a', start: 10, end: 15, srcIn: 1, mediaDuration: 20 }];
+  const w = transcriptWords(clips, [{ clip: 0, json }]);
+  assert.deepEqual(w.map((x) => x.text), ['olá', 'tudo']);   // "bem" is past the clip's out point
+  assert.equal(w[0].start, 10);
+  assert.ok(Math.abs(w[1].start - 10.5) < 1e-9);
+  const ticks = JSON.stringify([{ word: 'oi', startTime: 254016000000, endTime: 2 * 254016000000 }]);
+  assert.deepEqual(parsePremiereTranscript(ticks, 10).map((x) => [x.start, x.end]), [[1, 2]]);
 });

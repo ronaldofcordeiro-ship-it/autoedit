@@ -4,6 +4,7 @@ const ppro = require('premierepro');
 
 const Premiere = (() => {
   const TICKS_PER_SECOND = 254016000000;
+  let lastItems = [];   // project items behind the clips of the last readSequence()
 
   async function project() {
     const p = await ppro.Project.getActiveProject();
@@ -33,6 +34,7 @@ const Premiere = (() => {
     if (!track) throw new Error('A sequência não tem trilha de vídeo.');
     const items = track.getTrackItems(ppro.Constants.TrackItemType.CLIP, false) || [];
     const clips = [];
+    lastItems = [];
     for (const item of items) {
       if (await item.isDisabled()) continue;
       if (item.isAdjustmentLayer && await item.isAdjustmentLayer()) continue;
@@ -40,6 +42,7 @@ const Premiere = (() => {
       const clipItem = projectItem && ppro.ClipProjectItem.cast(projectItem);
       const path = clipItem ? await clipItem.getMediaFilePath() : '';
       if (!path) continue;   // titles, graphics, nested sequences
+      lastItems.push({ path, clipItem });
       clips.push({
         path,
         name: await item.getName(),
@@ -48,6 +51,9 @@ const Premiere = (() => {
         srcIn: (await item.getInPoint()).seconds,
       });
     }
+    // Keep the project items in the same order as the clips sent to the engine.
+    const order = clips.map((c, i) => i).sort((a, b) => clips[a].start - clips[b].start);
+    lastItems = order.map((i) => lastItems[i]);
     clips.sort((a, b) => a.start - b.start);
     return {
       name: seq.name,
@@ -57,6 +63,58 @@ const Premiere = (() => {
       audioRate: 48000,
       clips,
     };
+  }
+
+  /**
+   * Premiere's own speech-to-text for every clip of the last readSequence():
+   * transcribes the clips that have no transcript yet and exports them as JSON.
+   * Returns [] when this Premiere can't, so the engine falls back to whisper.
+   */
+  async function transcripts(language, onStatus) {
+    const T = ppro.Transcript;
+    if (!T || !T.exportToJSON || !T.transcribeClipProjectItem) return [];
+    let code;
+    try {
+      const langs = (T.querySupportedLanguages && await T.querySupportedLanguages()) || [];
+      const match = langs.find((l) => /^pt-br$/i.test(l.languageCode) && language === 'pt')
+        || langs.find((l) => String(l.languageCode).toLowerCase().startsWith(language));
+      code = match && match.languageCode;
+    } catch (e) { /* older Premiere: use the user's default language */ }
+
+    const byPath = new Map();
+    const out = [];
+    for (let i = 0; i < lastItems.length; i++) {
+      const { path, clipItem } = lastItems[i];
+      const status = (s) => onStatus && onStatus(s, i, lastItems.length);
+      status.cancelled = onStatus && onStatus.cancelled;
+      if (!byPath.has(path)) byPath.set(path, await exportOrTranscribe(T, clipItem, code, status));
+      const json = byPath.get(path);
+      if (json) out.push({ clip: i, json });
+    }
+    return out;
+  }
+
+  async function exportOrTranscribe(T, clipItem, code, onStatus) {
+    const read = async () => { try { const j = await T.exportToJSON(clipItem); return j && j.length > 20 ? j : ''; } catch (e) { return ''; } };
+    const has = async () => { try { return T.hasTranscript ? await T.hasTranscript(clipItem) : !!(await read()); } catch (e) { return false; } };
+    if (await has()) return read();
+    onStatus('o Premiere está transcrevendo');
+    let started;
+    try {
+      started = await (code ? T.transcribeClipProjectItem(clipItem, { language: code }) : T.transcribeClipProjectItem(clipItem));
+    } catch (e) {
+      try { started = await T.transcribeClipProjectItem(clipItem); } catch (e2) { return ''; }
+    }
+    if (started === false) return '';
+    // The call can return before the transcript is ready; wait for it (up to 30 min).
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30 * 60 * 1000 && !(onStatus.cancelled && onStatus.cancelled())) {
+      const j = await read();
+      if (j) return j;
+      onStatus('o Premiere está transcrevendo (' + Math.round((Date.now() - t0) / 1000) + ' s)');
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+    return '';
   }
 
   async function summary() {
@@ -84,5 +142,5 @@ const Premiere = (() => {
     return p.deleteSequence(seq);
   }
 
-  return { readSequence, summary, importEdit, removeEdit };
+  return { readSequence, transcripts, summary, importEdit, removeEdit };
 })();
