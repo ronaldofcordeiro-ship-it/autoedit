@@ -3,3 +3,4 @@ dist/
 engine/bin/
 engine/models/
 *.log
+versao.txt
