@@ -25,6 +25,8 @@ export interface SourceClip {
   width?: number;
   height?: number;
   hasAudio?: boolean;
+  /** Clockwise degrees Premiere must turn the picture (phones store portrait as rotated landscape). */
+  rotation?: number;
 }
 
 export interface SequenceInfo {

@@ -43,15 +43,17 @@ export async function probe(clip: SourceClip): Promise<SourceClip> {
   const r = await must(tool('ffprobe'), ['-v', 'error', '-show_entries', 'format=duration:stream=codec_type,width,height:stream_tags=rotate:stream_side_data=rotation', '-of', 'json', clip.path]);
   const j = JSON.parse(r.stdout);
   const v = (j.streams || []).find((s: any) => s.codec_type === 'video');
-  // Phones store portrait video as landscape pixels plus a rotation flag;
-  // Premiere shows it upright, so the XML must describe it upright too.
-  const rot = Number(v?.tags?.rotate ?? (v?.side_data_list || []).find((d: any) => d.rotation !== undefined)?.rotation ?? 0);
-  const turned = Math.abs(rot) % 180 === 90;
+  // Phones store portrait video as landscape pixels plus a rotation flag.
+  // Premiere's XML import ignores the flag, so the edit turns the clip itself.
+  const side = (v?.side_data_list || []).find((d: any) => d.rotation !== undefined)?.rotation;
+  let rotation = v?.tags?.rotate !== undefined ? Number(v.tags.rotate) : side !== undefined ? -Number(side) : 0;
+  rotation = ((Math.round(rotation) % 360) + 540) % 360 - 180;
   return {
     ...clip,
     mediaDuration: Number(j.format?.duration) || clip.mediaDuration,
-    width: (turned ? v?.height : v?.width) ?? clip.width,
-    height: (turned ? v?.width : v?.height) ?? clip.height,
+    width: v?.width ?? clip.width,
+    height: v?.height ?? clip.height,
+    rotation: rotation === -180 ? 180 : rotation,
     hasAudio: (j.streams || []).some((s: any) => s.codec_type === 'audio'),
   };
 }

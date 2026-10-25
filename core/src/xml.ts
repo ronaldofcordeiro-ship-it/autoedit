@@ -91,9 +91,13 @@ export function buildXml(plan: EditPlan, seq: SequenceInfo, opts: { name: string
       + `</media></file>`;
   };
 
-  const scale = (zoom: number) => zoom === 1 ? '' :
+  const param = (id: string, name: string, min: number, max: number, value: number) =>
+    `<parameter authoringApp="PremierePro"><parameterid>${id}</parameterid><name>${name}</name><valuemin>${min}</valuemin><valuemax>${max}</valuemax><value>${value}</value></parameter>`;
+  const motion = (zoom: number, rotation = 0) => zoom === 1 && !rotation ? '' :
     `<filter><effect><name>Basic Motion</name><effectid>basic</effectid><effectcategory>motion</effectcategory><effecttype>motion</effecttype><mediatype>video</mediatype>`
-    + `<parameter authoringApp="PremierePro"><parameterid>scale</parameterid><name>Scale</name><valuemin>0</valuemin><valuemax>1000</valuemax><value>${Math.round(zoom * 1000) / 10}</value></parameter></effect></filter>`;
+    + param('scale', 'Scale', 0, 1000, Math.round(zoom * 1000) / 10)
+    + (rotation ? param('rotation', 'Rotation', -8640, 8640, rotation) : '')
+    + `</effect></filter>`;
 
   const level = gain === 1 ? '' :
     `<filter><effect><name>Audio Levels</name><effectid>audiolevels</effectid><effectcategory>audiolevels</effectcategory><effecttype>audiolevels</effecttype><mediatype>audio</mediatype>`
@@ -110,7 +114,7 @@ export function buildXml(plan: EditPlan, seq: SequenceInfo, opts: { name: string
     + `<start>${x.start}</start><end>${x.end}</end><in>${x.in}</in><out>${x.out}</out>`;
 
   // Clips without audio still take their slot (disabled) so clip indices stay aligned across tracks.
-  const vItems = video.map((v, i) => head(`v-${i + 1}`, v.p.clip, v) + fileRef(v.p) + scale(v.p.zoom) + link(i, v.p.clip.hasAudio !== false) + `</clipitem>`).join('');
+  const vItems = video.map((v, i) => head(`v-${i + 1}`, v.p.clip, v) + fileRef(v.p) + motion(v.p.zoom, v.p.clip.rotation) + link(i, v.p.clip.hasAudio !== false) + `</clipitem>`).join('');
   const aTrack = (ch: number) => audio.map((a, i) => a.p.clip.hasAudio === false ? '' :
     head(`a${ch}-${i + 1}`, a.p.clip, a, ' premiereChannelType="mono"') + fileRef(a.p)
     + `<sourcetrack><mediatype>audio</mediatype><trackindex>${ch}</trackindex></sourcetrack>` + level + link(i, true) + `</clipitem>`).join('');
