@@ -1,6 +1,10 @@
 /* AutoEdit panel. Quiet dark cards, line illustrations, one red accent dot
    for "on". No CSS variables or grid, so every UXP version renders it. */
+/* Header, scrolling middle, button dock: a column that fills the panel.
+   UXP panels don't scroll the body, so the middle scrolls on its own. */
+html, body { height: 100%; }
 body {
+  display: flex; flex-direction: column; overflow: hidden;
   margin: 0; padding: 0;
   background-color: #1c1c1c; color: #d4d4d4;
   font-size: 12px; font-family: "Inter", "Segoe UI", system-ui, sans-serif;
@@ -13,7 +17,7 @@ body {
 b { font-weight: 700; color: #f2f2f2; }
 
 /* ---------- header */
-.top { display: flex; align-items: center; padding: 10px 12px; }
+.top { flex-shrink: 0; display: flex; align-items: center; padding: 10px 12px; }
 .power {
   position: relative; display: flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; margin-right: 9px; border-radius: 7px; background-color: #262626; border: 1px solid #303030;
@@ -34,7 +38,7 @@ b { font-weight: 700; color: #f2f2f2; }
 
 /* ---------- screens */
 .screen { padding: 0 12px 12px; }
-.spacer { height: 92px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; }
 .hero { padding: 12px; background-color: #242424; border: 1px solid #2c2c2c; border-radius: 10px; }
 .hero-art { margin-right: 10px; }
 .hero-title { font-size: 15px; line-height: 20px; color: #e8e8e8; }
@@ -107,7 +111,7 @@ b { font-weight: 700; color: #f2f2f2; }
 }
 .outline:hover { background-color: #232323; }
 
-.dock { position: fixed; left: 0; right: 0; bottom: 0; padding: 4px 12px 10px; background-color: #1c1c1c; border-top: 1px solid #242424; }
+.dock { flex-shrink: 0; padding: 4px 12px 10px; background-color: #1c1c1c; border-top: 1px solid #242424; }
 .dock .big { margin-top: 6px; }
 .note { margin-top: 6px; text-align: center; color: #7d7d7d; font-size: 10.5px; }
 
@@ -164,5 +168,5 @@ b { font-weight: 700; color: #f2f2f2; }
   background-color: #1a1a1a; color: #ececec; border: 1px solid #333333; border-radius: 7px;
 }
 
-.message { padding: 4px 14px 100px; color: #a6a6a6; font-size: 11px; }
+.message { padding: 4px 14px 12px; color: #a6a6a6; font-size: 11px; }
 .message.err { color: #ff8f8f; }

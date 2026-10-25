@@ -47,6 +47,7 @@ function show(screen) {
   $$('.screen').forEach((s) => s.classList.add('hidden'));
   $('#screen-' + screen).classList.remove('hidden');
   $('#dock').classList.toggle('hidden', screen !== 'home');
+  $('#scroll').scrollTop = 0;
 }
 
 // ------------------------------------------------------------ options screen

@@ -12,6 +12,7 @@
     <div role="button" id="settingsBtn" class="btn avatar" title="Ajustes"><span id="avatarInitial">A</span></div>
   </header>
 
+  <main id="scroll" class="scroll">
   <!-- 1. options -->
   <section id="screen-home" class="screen">
     <div class="hero row">
@@ -131,13 +132,7 @@
       </div>
     </div>
 
-    <div class="spacer"></div>
   </section>
-
-  <div id="dock" class="dock">
-    <div role="button" id="goBtn" class="btn big"><img src="img/power.svg" width="13" height="13">Ligar o AutoEdit<span class="dot on corner"></span></div>
-    <div class="note">A edição sai numa cópia da sequência. A sua fica intacta.</div>
-  </div>
 
   <!-- 2. progress -->
   <section id="screen-run" class="screen hidden">
@@ -210,6 +205,12 @@
   </section>
 
   <footer id="message" class="message"></footer>
+  </main>
+
+  <div id="dock" class="dock">
+    <div role="button" id="goBtn" class="btn big"><img src="img/power.svg" width="13" height="13">Ligar o AutoEdit<span class="dot on corner"></span></div>
+    <div class="note">A edição sai numa cópia da sequência. A sua fica intacta.</div>
+  </div>
 
   <script src="js/engine.js"></script>
   <script src="js/premiere.js"></script>
